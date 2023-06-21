@@ -13,6 +13,8 @@ import util
 from urllib import request
 from PIL import Image
 from io import BytesIO
+import os
+import urllib.request
 
 
 app = Flask(__name__)
@@ -145,7 +147,7 @@ def getDeal_old():
         # price = bsObject.find('span', 'prod_info_price').span.text
 
         # print(index + 1, title, author, image, url, price)
-        print(index + 1, title, image, url)
+        # print(index + 1, title, image, url)
         detail_info.append([index + 1, title, image, url])
 
     driver.quit()
@@ -171,7 +173,7 @@ def getDeal():
     for item in bsObject.find_all('tr', {'class': util.cond}):
         url = item.select('a')[0].get('href')
         book_page_urls.append(url)
-        print(url)
+        # print(url)
 
     # 웹페이지로부터 필요한 정보를 추출합니다.
     detail_info = []
@@ -179,32 +181,35 @@ def getDeal():
         html = urlopen("https://www.fmkorea.com/" + book_page_url)
         bsObject = BeautifulSoup(html, "html.parser")
         title = bsObject.find('span', 'np_18px_span').text
-        image = bsObject.find('meta', {'property': 'og:image'}).get('content')
+        image_url = bsObject.find('meta', {'property': 'og:image'}).get('content')
         url = bsObject.find('meta', {'property': 'og:url'}).get('content')
+        key = url.split('/')[3]
 
-        print(index + 1, title, image, url)
+        # print(index + 1, title, image, url, key)
         # detail_info.append([index + 1, title, image, url])
         if index == 2:
-            post_write(title, image, url)
+            post_write(title, image_url, url, key)
 
     # return render_template('getData.html', to=detail_info)
     return render_template('getData.html', to={'posting success'})
 
 
-def post_write(title, image, post_url):
+def post_write(title, image_url, post_url, key):
     url = "https://www.tistory.com/apis/post/write?"
     output = "json"
 
-    # 이미지 업로드
-    res = requests.get(image)
-    test_image_path = Image.open(BytesIO(res.content))
+    # 이미지 다운로드
+    image_file_name = key + ".jpg"
+    os.system("curl " + image_url + " > " + image_file_name)
 
-    files = {'uploadedfile': open(test_image_path, 'rb')}
+    # 이미지 업로드
+    files = {'uploadedfile': open(image_file_name, 'rb')}
     params = {'access_token': access_token, 'blogName': blogName, 'targetUrl': blogName, 'output': 'json'}
     rd = requests.post('https://www.tistory.com/apis/post/attach', params=params, files=files)
     item = json.loads(rd.text)
+    # print(image_file_name, item)
     test_image = item["tistory"]["replacer"]
-    print(test_image)
+    # print(test_image)
 
     # 본문
     # content = image + " " + post_url
@@ -232,13 +237,13 @@ def post_write(title, image, post_url):
             'visibility': visibility,
             'tag': tags
             }
-    # res = requests.post(url, data=json.dumps(data), headers=headers) #post
+    res = requests.post(url, data=json.dumps(data), headers=headers) #post
     # print(str(res.status_code) + " | " + res.text)
     #
     # print(data)
     # # return requests.post(data)
-    # return render_template('getData.html', to=res.text)
-    return render_template('getData.html', to={'1'})
+    return render_template('getData.html', to=res.text)
+    # return render_template('getData.html', to={'1'})
 
 
 if __name__ == "__main__":
