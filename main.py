@@ -10,7 +10,7 @@ import urllib.request
 from multiprocessing import Process
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask_sqlalchemy import SQLAlchemy
-from models import db, Post
+from models import db, Post, Word
 
 app = Flask(__name__)
 
@@ -151,11 +151,16 @@ def getDeal():
 
         # print(index + 1, title, image, url, key)
         # detail_info.append([index + 1, title, image, url])
-        if index == 2:
+
+        words = Word.query.all()
+        title_list = title.split(' ')
+        search_words = list(set(words) - set(title_list))
+
+        if title_list in words: # 검색어가 있는지?
             post_list = Post.query.filter(Post.post_key == key)
             print(post_list)
 
-            if post_list is None:
+            if post_list is None:   #이전에 등록했는지?
                 post_write(title, image_url, url, key)
                 post = Post(post_key=key)
                 db.session.add(post)

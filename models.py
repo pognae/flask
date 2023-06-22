@@ -14,3 +14,13 @@ class Post(db.Model):
 
     def __repr__(self):
         return f"Post('{self.post_key}')"
+
+
+class Word(db.Model):
+    __tablename__ = "word"
+
+    id = db.Column(db.Integer, primary_key=True)
+    words = db.Column(db.String(300), unique=True)
+
+    def __repr__(self):
+        return f"Word('{self.words}')"
