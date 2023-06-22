@@ -1,20 +1,13 @@
-from io import BytesIO
-
-from flask import Flask
+from flask import Flask, after_this_request
 from flask import render_template
-import json
-import requests
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
+import json
+import requests
 import util
-# from urllib import request
-# from PIL import Image
-# from io import BytesIO
 import os
-
+import urllib.request
+from multiprocessing import Process
 
 
 app = Flask(__name__)
@@ -39,12 +32,6 @@ def index1():
 @app.route('/')
 def index():
     return render_template('index.html', to="data~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-
-
-@app.route('/api')
-def api():
-    d = {"text": "Hello data"}
-    return json.dumps(d)
 
 
 def getAccessToken():
@@ -75,7 +62,6 @@ def getCategoryID():
 
     res = requests.get(data)
 
-    print(data)
     # return requests.get(data)
     # return json.dumps(data)
     return render_template('getData.html', to=res.text)
@@ -100,60 +86,8 @@ def postWriting(title="No Title", content="No Content"):
     res = requests.post(url, data=json.dumps(data), headers=headers) #post
     print(str(res.status_code) + " | " + res.text)
 
-    print(data)
     # return requests.post(data)
     return render_template('getData.html', to=res.text)
-
-
-# @app.route('/getDeal')
-def getDeal_old():
-    # 핫딜 정보 가져오기(ChromeDriverManager 사용)
-    # html = urlopen("https://www.fmkorea.com/hotdeal")
-    # bsObject = BeautifulSoup(html, "html.parser")
-    # driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))   #error
-
-    options = webdriver.ChromeOptions()
-    options.add_argument('headless')
-    options.add_argument('window-size=1920x1080')
-    options.add_argument("disable-gpu")
-    # UserAgent값을 바꿔줍시다!
-    options.add_argument(
-        "user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36")
-
-    driver = webdriver.Chrome(ChromeDriverManager().install(), chrome_options=options)
-
-    # 교보문고의 베스트셀러 웹페이지를 가져옵니다.
-    driver.get("https://www.fmkorea.com/hotdeal")
-    bsObject = BeautifulSoup(driver.page_source, 'html.parser')
-
-    print(bsObject.find_all('table', 'notice_pop1'))
-
-    # 책의 상세 웹페이지 주소를 추출하여 리스트에 저장합니다.
-    book_page_urls = []
-    for item in bsObject.find_all('table', 'notice_pop1'):
-        url = item.select('a')[0].get('href')
-        book_page_urls.append(url)
-        print(url)
-
-    # 웹페이지로부터 필요한 정보를 추출합니다.
-    detail_info = []
-    for index, book_page_url in enumerate(book_page_urls):
-        html = urlopen(book_page_url)
-        bsObject = BeautifulSoup(html, "html.parser")
-        title = bsObject.find('span', 'np_18px_span').text
-        # author = bsObject.find('h3', 'title_heading').a.span.text
-        image = bsObject.find('meta', {'property': 'og:image'}).get('content')
-        url = bsObject.find('meta', {'property': 'og:url'}).get('content')
-        # price = bsObject.find('span', 'prod_info_price').span.text
-
-        # print(index + 1, title, author, image, url, price)
-        # print(index + 1, title, image, url)
-        detail_info.append([index + 1, title, image, url])
-
-    driver.quit()
-
-    return render_template('getData.html', to=detail_info)
-
 
 
 @app.route('/getDeal')
@@ -200,27 +134,21 @@ def post_write(title, image_url, post_url, key):
 
     # 이미지 다운로드
     image_file_name = key + ".jpg"
-    # os.system("curl " + image_url + " > " + image_file_name)
-    urlopen.urlretrieve(image_url, image_file_name)
-    # res = request.urlopen(image_url).read()
-    # img = Image.open(BytesIO(res))
-    # print(img.info)
+    urllib.request.urlretrieve(image_url, image_file_name)
 
     # 이미지 업로드
     files = {'uploadedfile': open(image_file_name, 'rb')}
     params = {'access_token': access_token, 'blogName': blogName, 'targetUrl': blogName, 'output': 'json'}
     rd = requests.post('https://www.tistory.com/apis/post/attach', params=params, files=files)
     item = json.loads(rd.text)
-    # print(image_file_name, item)
     test_image = item["tistory"]["replacer"]
-    # print(test_image)
 
     # 본문
-    # content = image + " " + post_url
     visibility = 0  #0: 비공개 - 기본값, 1: 보호, 3: 발행
-    tags = "테스트1, 테스트2, 테스트3, 테스트4"  # 태그는 쉼표로 구분
+    title_str = title.split(' ')
+    tags = "핫딜," + ','.join(title_str)  # 태그는 쉼표로 구분
     content = '<p>' + test_image + '</p>'
-    content += '<p data-ke-size="size16">출처 : ' + post_url + '</p>'
+    content += '<p data-ke-size="size16">출처 : <a href="' + post_url + '" target="_blank" rel="noopener">' + post_url + '</a></p>'
 
     data = url
     data += "access_token=" + access_token + "&"
@@ -230,7 +158,6 @@ def post_write(title, image_url, post_url, key):
     data += "content=" + content + "&"
     data += "category=1167012"  #핫딜 카테고리
 
-    # res = requests.get(data) #get
     headers = {'Content-Type': 'application/json; chearset=utf-8'}
     data = {'access_token': access_token,
             'output': output,
@@ -242,16 +169,26 @@ def post_write(title, image_url, post_url, key):
             'tag': tags
             }
     res = requests.post(url, data=json.dumps(data), headers=headers) #post
-    # print(str(res.status_code) + " | " + res.text)
+    print(str(res.status_code) + " | " + res.text)
 
-    # 이미지 삭제
-    if os.path.isfile(image_file_name):
+    # 이미지 삭제 - 프로세스가 잡고 있는 에러 발생
+    @after_this_request
+    def cleanup(response):
         os.remove(image_file_name)
+        return response
 
-    # print(data)
-    # # return requests.post(data)
+    # return render_template('getData.html', to={'test'})
     return render_template('getData.html', to=res.text)
-    # return render_template('getData.html', to={'1'})
+
+
+def background_remove(path):
+    task = Process(target=rm(path))
+    task.start()
+
+
+def rm(path):
+    if os.path.isfile(path):
+        os.remove(path)
 
 
 if __name__ == "__main__":
