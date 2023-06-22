@@ -10,11 +10,11 @@ from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 import util
-from urllib import request
-from PIL import Image
-from io import BytesIO
+# from urllib import request
+# from PIL import Image
+# from io import BytesIO
 import os
-import urllib.request
+
 
 
 app = Flask(__name__)
@@ -200,7 +200,11 @@ def post_write(title, image_url, post_url, key):
 
     # 이미지 다운로드
     image_file_name = key + ".jpg"
-    os.system("curl " + image_url + " > " + image_file_name)
+    # os.system("curl " + image_url + " > " + image_file_name)
+    urlopen.urlretrieve(image_url, image_file_name)
+    # res = request.urlopen(image_url).read()
+    # img = Image.open(BytesIO(res))
+    # print(img.info)
 
     # 이미지 업로드
     files = {'uploadedfile': open(image_file_name, 'rb')}
@@ -239,7 +243,11 @@ def post_write(title, image_url, post_url, key):
             }
     res = requests.post(url, data=json.dumps(data), headers=headers) #post
     # print(str(res.status_code) + " | " + res.text)
-    #
+
+    # 이미지 삭제
+    if os.path.isfile(image_file_name):
+        os.remove(image_file_name)
+
     # print(data)
     # # return requests.post(data)
     return render_template('getData.html', to=res.text)
