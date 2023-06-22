@@ -8,9 +8,38 @@ import util
 import os
 import urllib.request
 from multiprocessing import Process
-
+from apscheduler.schedulers.background import BackgroundScheduler
+from flask_sqlalchemy import SQLAlchemy
+from models import db, Post
 
 app = Flask(__name__)
+
+
+# 현재있는 파일의 디렉토리 절대경로
+base_dir = os.path.abspath(os.path.dirname(__file__))
+
+# basdir 경로안에 DB파일 만들기
+db_file = os.path.join(base_dir, 'db.sqlite')
+
+# SQLAlchemy 설정
+# 내가 사용 할 DB URI
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_file
+
+# 비지니스 로직이 끝날때 Commit 실행(DB반영)
+app.config['SQLALCHEMY_COMMIT_ON_TEARDOWN'] = True
+
+# 수정사항에 대한 TRACK
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+app.config['SECRET_KEY'] = 'aldkfjaoermqeoifalkdjfnalkdsfjjkdk'
+
+
+# sqlite
+db.init_app(app)
+db.app = app
+# db.create_all()
+with app.app_context():
+    db.create_all()
 
 # tistory
 client_id = "7691b3b1da8d9da0a280f54da72e946e"
@@ -22,6 +51,7 @@ access_token = "c9b1a2862fb270174114e073bf1b0793_270d34f4b4ccf2a8a5f0f2a09b6e1ff
 blogName = "gumdrop"
 
 # twitter
+
 
 
 @app.route('/index')
@@ -122,7 +152,13 @@ def getDeal():
         # print(index + 1, title, image, url, key)
         # detail_info.append([index + 1, title, image, url])
         if index == 2:
-            post_write(title, image_url, url, key)
+            post_list = Post.query.filter(Post.post_key == key)
+            print(post_list)
+
+            if post_list is None:
+                post_write(title, image_url, url, key)
+                post = Post(post_key=key)
+                db.session.add(post)
 
     # return render_template('getData.html', to=detail_info)
     return render_template('getData.html', to={'posting success'})
@@ -181,14 +217,10 @@ def post_write(title, image_url, post_url, key):
     return render_template('getData.html', to=res.text)
 
 
-def background_remove(path):
-    task = Process(target=rm(path))
-    task.start()
-
-
-def rm(path):
-    if os.path.isfile(path):
-        os.remove(path)
+# 스케줄
+sched = BackgroundScheduler(daemon=True)
+sched.add_job(getDeal, 'interval', minutes=60)
+sched.start()
 
 
 if __name__ == "__main__":
