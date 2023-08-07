@@ -6,9 +6,9 @@ import json
 import requests
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
+# from selenium import webdriver
+# from selenium.webdriver.chrome.service import Service
+# from webdriver_manager.chrome import ChromeDriverManager
 import util
 from urllib import request
 from PIL import Image
