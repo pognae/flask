@@ -148,6 +148,8 @@ def getDeal():
         image_url = bsObject.find('meta', {'property': 'og:image'}).get('content')
         url = bsObject.find('meta', {'property': 'og:url'}).get('content')
         key = url.split('/')[3]
+        post_url = bsObject.find('a', 'hotdeal_url')["href"]
+        print("111111111111:" + post_url)
 
         # print(index + 1, title, image, url, key)
         # detail_info.append([index + 1, title, image, url])
@@ -156,14 +158,21 @@ def getDeal():
         title_list = title.split(' ')
         search_words = list(set(words) - set(title_list))
 
-        if title_list in words: # 검색어가 있는지?
-            post_list = Post.query.filter(Post.post_key == key)
-            print(post_list)
+        # if title_list in words: # 검색어가 있는지?
+        #     post_list = Post.query.filter(Post.post_key == key)
+        #     print(post_list)
+        #
+        #     if post_list is None:   #이전에 등록했는지?
+        #         post_write(title, image_url, post_url, key)
+        #         post = Post(post_key=key)
+        #         db.session.add(post)
+        post_list = Post.query.filter(Post.post_key == key)
+        print(post_list)
 
-            if post_list is None:   #이전에 등록했는지?
-                post_write(title, image_url, url, key)
-                post = Post(post_key=key)
-                db.session.add(post)
+        if post_list is None:   #이전에 등록했는지?
+            post_write(title, image_url, post_url, key)
+            post = Post(post_key=key)
+            db.session.add(post)
 
     # return render_template('getData.html', to=detail_info)
     return render_template('getData.html', to={'posting success'})
