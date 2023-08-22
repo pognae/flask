@@ -154,9 +154,10 @@ def getDeal():
         # print(index + 1, title, image, url, key)
         # detail_info.append([index + 1, title, image, url])
 
-        words = Word.query.all()
-        title_list = title.split(' ')
-        search_words = list(set(words) - set(title_list))
+        # 블로깅 지정 단어
+        # words = Word.query.all()
+        # title_list = title.split(' ')
+        # search_words = list(set(words) - set(title_list))
 
         # if title_list in words: # 검색어가 있는지?
         #     post_list = Post.query.filter(Post.post_key == key)
