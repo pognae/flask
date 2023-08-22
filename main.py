@@ -149,7 +149,7 @@ def getDeal():
         url = bsObject.find('meta', {'property': 'og:url'}).get('content')
         key = url.split('/')[3]
         post_url = bsObject.find('a', 'hotdeal_url')["href"]
-        print("111111111111:" + post_url)
+        # print("111111111111:" + post_url)
 
         # print(index + 1, title, image, url, key)
         # detail_info.append([index + 1, title, image, url])
@@ -166,13 +166,14 @@ def getDeal():
         #         post_write(title, image_url, post_url, key)
         #         post = Post(post_key=key)
         #         db.session.add(post)
-        post_list = Post.query.filter(Post.post_key == key)
-        print(post_list)
-
+        post_list = Post.query.filter(Post.post_key == key).first()
+        # print(post_list)
+        # print(key)
         if post_list is None:   #이전에 등록했는지?
             post_write(title, image_url, post_url, key)
             post = Post(post_key=key)
             db.session.add(post)
+            db.session.commit()
 
     # return render_template('getData.html', to=detail_info)
     return render_template('getData.html', to={'posting success'})
@@ -194,7 +195,7 @@ def post_write(title, image_url, post_url, key):
     test_image = item["tistory"]["replacer"]
 
     # 본문
-    visibility = 0  #0: 비공개 - 기본값, 1: 보호, 3: 발행
+    visibility = 3  #0: 비공개 - 기본값, 1: 보호, 3: 발행
     title_str = title.split(' ')
     tags = "핫딜," + ','.join(title_str)  # 태그는 쉼표로 구분
     content = '<p>' + test_image + '</p>'
