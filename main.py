@@ -12,13 +12,13 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from flask_sqlalchemy import SQLAlchemy
 from models import db, Post, Word
 
-import win32serviceutil
-import servicemanager
-import ctypes
-import sys
-import time
+# import win32serviceutil
+# import servicemanager
+# import ctypes
+# import sys
+# import time
 
-OutputDebugString = ctypes.windll.kernel32.OutputDebugStringW
+# OutputDebugString = ctypes.windll.kernel32.OutputDebugStringW
 
 app = Flask(__name__)
 
@@ -130,6 +130,8 @@ def postWriting(title="No Title", content="No Content"):
 
 @app.route('/getDeal')
 def getDeal():
+    returnStr = {}
+
     # 핫딜 정보 가져오기(beautifulsoup4 사용)
     hotdeal_info_url = "https://www.fmkorea.com/hotdeal"
     response = requests.get(hotdeal_info_url)
@@ -179,13 +181,14 @@ def getDeal():
         # print(post_list)
         # print(key)
         if post_list is None:   #이전에 등록했는지?
-            post_write(title, image_url, post_url, key)
+            # post_write(title, image_url, post_url, key)
+            returnStr = post_write(title, image_url, post_url, key)
             post = Post(post_key=key)
             db.session.add(post)
             db.session.commit()
 
     # return render_template('getData.html', to=detail_info)
-    return render_template('getData.html', to={'posting success'})
+    return render_template('getData.html', to=returnStr)
 
 
 def post_write(title, image_url, post_url, key):
@@ -238,7 +241,8 @@ def post_write(title, image_url, post_url, key):
         return response
 
     # return render_template('getData.html', to={'test'})
-    return render_template('getData.html', to=res.text)
+    # return render_template('getData.html', to=res.text)
+    return str(res.status_code) + " | " + res.text
 
 
 # 스케줄
@@ -247,24 +251,24 @@ sched.add_job(getDeal, 'interval', minutes=60)
 sched.start()
 
 
-class MyServiceFramework(win32serviceutil.ServiceFramework):
-    _svc_name_ = 'MyPythonService'
-    _svc_display_name_ = 'My Python Service'
-    is_running = False
-
-    def SvcStop(self):
-        OutputDebugString("MyServiceFramework __SvcStop__")
-        self.is_running = False
-
-    def SvcDoRun(self):
-        self.is_running = True
-        while self.is_running:
-            OutputDebugString("MyServiceFramework __loop__")
-            time.sleep(1)
+# class MyServiceFramework(win32serviceutil.ServiceFramework):
+#     _svc_name_ = 'MyPythonService'
+#     _svc_display_name_ = 'My Python Service'
+#     is_running = False
+#
+#     def SvcStop(self):
+#         OutputDebugString("MyServiceFramework __SvcStop__")
+#         self.is_running = False
+#
+#     def SvcDoRun(self):
+#         self.is_running = True
+#         while self.is_running:
+#             OutputDebugString("MyServiceFramework __loop__")
+#             time.sleep(1)
 
 
 if __name__ == "__main__":
     # token = getAccessToken().content
     # print(token.decode('utf-8'))
     app.run(host='127.0.0.1', port=5000, debug=True)
-    win32serviceutil.HandleCommandLine(MyServiceFramework)
+    # win32serviceutil.HandleCommandLine(MyServiceFramework)
