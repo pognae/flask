@@ -12,6 +12,14 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from flask_sqlalchemy import SQLAlchemy
 from models import db, Post, Word
 
+import win32serviceutil
+import servicemanager
+import ctypes
+import sys
+import time
+
+OutputDebugString = ctypes.windll.kernel32.OutputDebugStringW
+
 app = Flask(__name__)
 
 
@@ -239,7 +247,24 @@ sched.add_job(getDeal, 'interval', minutes=60)
 sched.start()
 
 
+class MyServiceFramework(win32serviceutil.ServiceFramework):
+    _svc_name_ = 'MyPythonService'
+    _svc_display_name_ = 'My Python Service'
+    is_running = False
+
+    def SvcStop(self):
+        OutputDebugString("MyServiceFramework __SvcStop__")
+        self.is_running = False
+
+    def SvcDoRun(self):
+        self.is_running = True
+        while self.is_running:
+            OutputDebugString("MyServiceFramework __loop__")
+            time.sleep(1)
+
+
 if __name__ == "__main__":
     # token = getAccessToken().content
     # print(token.decode('utf-8'))
     app.run(host='127.0.0.1', port=5000, debug=True)
+    win32serviceutil.HandleCommandLine(MyServiceFramework)
