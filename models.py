@@ -34,4 +34,4 @@ class Blog(db.Model):
     status = db.Column(db.Integer)
 
     def __repr__(self):
-        return f"Word('{self.blog}')"
+        return f"Blog('{self.blog}')"

@@ -10,7 +10,8 @@ import urllib.request
 from multiprocessing import Process
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask_sqlalchemy import SQLAlchemy
-from models import db, Post, Word
+from models import db, Post, Word, Blog
+import tweepy
 
 # import win32serviceutil
 # import servicemanager
@@ -59,8 +60,14 @@ access_token = "c9b1a2862fb270174114e073bf1b0793_270d34f4b4ccf2a8a5f0f2a09b6e1ff
 blogName = "gumdrop"
 
 # twitter
-
-
+twitter_app_id = '27673764'
+twitter_api_key = 'cV9MKcDtdQVjSbfFKsa7lexVA'
+twitter_api_key_secret = 'OWHywLVG2vym0v4JrVqXcj4ACyFDu89t5s35DcKSEBJqlUKi4j'
+twitter_bearer_token = 'AAAAAAAAAAAAAAAAAAAAAKREpgEAAAAA4AXlPkqYZXCY80FmjGAMqX4s%2FQE%3Dd87D5OsQ8m1ftTEmCsYFj4YbQr1HTOYSCNf1kSJP7E2Zl9Kenl'
+twitter_access_token = '1315096053410983936-hjgbDG03CWEqygIeqjkHWn9ZOd0QJd'
+twitter_access_token_secret = 'iY2avoPoIjdQ7tW5rX8xw85f6P38p9r2lPTSklvEVfMwe'
+twitter_client_id = 'Qm1rdTZrQlFwX1c2dVhfMjhiZnI6MTpjaQ'
+twitter_client_secret = 'ejsHtaC6C6VVq9LkHO5-kOWGdJ8AchlQzwKp4oAM3XRWTgX1Kc'
 
 @app.route('/index')
 def index1():
@@ -153,9 +160,16 @@ def getDeal():
     detail_info = []
     for index, book_page_url in enumerate(book_page_urls):
         html = urlopen("https://www.fmkorea.com/" + book_page_url)
+        print(book_page_url)
         bsObject = BeautifulSoup(html, "html.parser")
         title = bsObject.find('span', 'np_18px_span').text
-        image_url = bsObject.find('meta', {'property': 'og:image'}).get('content')
+        image_url = None
+
+        try:
+            image_url = bsObject.find('meta', {'property': 'og:image'}).get('content')
+        except AttributeError as e:
+            print(e)
+
         url = bsObject.find('meta', {'property': 'og:url'}).get('content')
         key = url.split('/')[3]
         post_url = bsObject.find('a', 'hotdeal_url')["href"]
@@ -194,17 +208,20 @@ def getDeal():
 def post_write(title, image_url, post_url, key):
     url = "https://www.tistory.com/apis/post/write?"
     output = "json"
+    test_image = ""
+    image_file_name = ""
 
-    # 이미지 다운로드
-    image_file_name = key + ".jpg"
-    urllib.request.urlretrieve(image_url, image_file_name)
+    if image_url is not None:
+        # 이미지 다운로드
+        image_file_name = key + ".jpg"
+        urllib.request.urlretrieve(image_url, image_file_name)
 
-    # 이미지 업로드
-    files = {'uploadedfile': open(image_file_name, 'rb')}
-    params = {'access_token': access_token, 'blogName': blogName, 'targetUrl': blogName, 'output': 'json'}
-    rd = requests.post('https://www.tistory.com/apis/post/attach', params=params, files=files)
-    item = json.loads(rd.text)
-    test_image = item["tistory"]["replacer"]
+        # 이미지 업로드
+        files = {'uploadedfile': open(image_file_name, 'rb')}
+        params = {'access_token': access_token, 'blogName': blogName, 'targetUrl': blogName, 'output': 'json'}
+        rd = requests.post('https://www.tistory.com/apis/post/attach', params=params, files=files)
+        item = json.loads(rd.text)
+        test_image = item["tistory"]["replacer"]
 
     # 본문
     visibility = 3  #0: 비공개 - 기본값, 1: 보호, 3: 발행
@@ -234,7 +251,12 @@ def post_write(title, image_url, post_url, key):
     res = requests.post(url, data=json.dumps(data), headers=headers) #post
     print(str(res.status_code) + " | " + res.text)
 
+    # 트위터 글쓰기
+    # update_tweet(title)
+    
     # 이미지 삭제 - 프로세스가 잡고 있는 에러 발생
+    # if image_url is not None:
+    #     os.remove(image_file_name)
     @after_this_request
     def cleanup(response):
         os.remove(image_file_name)
@@ -242,7 +264,63 @@ def post_write(title, image_url, post_url, key):
 
     # return render_template('getData.html', to={'test'})
     # return render_template('getData.html', to=res.text)
+    blog_write(title, res.text)
     return str(res.status_code) + " | " + res.text
+
+
+def blog_write(title, response_txt):
+    jsonObject = json.loads(response_txt)
+    blogObject = jsonObject.get("tistory")
+    postId = blogObject.get("postId")
+    status = jsonObject.get("tistory").get("status")
+    url = jsonObject.get("tistory").get("url")
+
+    blog_list = Blog.query.filter(Blog.postId == postId).first()
+    if blog_list is None:  # 이전에 등록했는지?
+        blog = Blog(postId=postId, status=status, url=url)
+        db.session.add(blog)
+        db.session.commit()
+
+        update_tweet(title + " " + url)
+
+
+
+## 트위터 api와 연결
+# def connect_api():
+#     consumer_key = 'consumer_key'
+#     consumer_secret = 'consumer_secret'
+#     access_token = 'access_token'
+#     access_token_secret = 'access_token_secret'
+#
+#     auth = tweepy.OAuthHandler(consumer_key, consumer_secret)
+#     auth.set_access_token(access_token, access_token_secret)
+#     api = tweepy.API(auth)
+#
+#     return api
+
+
+# 트위터 api와 연결
+def update_tweet(tweet):
+    # 트위터 작성
+    # auth = tweepy.OAuthHandler(twitter_api_key, twitter_api_key_secret)
+    # auth.set_access_token(twitter_access_token, twitter_access_token_secret)
+    # api = tweepy.API(auth)
+    # api.update_status(tweet)
+
+    api = tweepy.Client(consumer_key=twitter_api_key,
+                           consumer_secret=twitter_api_key_secret,
+                           access_token=twitter_access_token,
+                           access_token_secret=twitter_access_token_secret)
+
+    # mediaID1 = mediaID = api.media_upload("media1.png")
+    # mediaID2 = mediaID = api.media_upload("image2.png")
+    # mediaID3 = mediaID = api.media_upload("image3.png")
+    #
+    # api.create_tweet(text='I want to Post 3 Photos and description',
+    #                  media={media_ids=[mediaID1,mediaID2,mediaID3]})
+    response = api.create_tweet(text=tweet)
+    print(response)
+
 
 
 # 스케줄
