@@ -50,24 +50,7 @@ db.app = app
 with app.app_context():
     db.create_all()
 
-# tistory
-client_id = "7691b3b1da8d9da0a280f54da72e946e"
-client_secret = "7691b3b1da8d9da0a280f54da72e946e6ed455a4e577ac13b0c9e461425fda6108cd8ddb"
-code = "cdf012454cdbb4b926ca627288b5e3be5a5ce7ae09ee7d8bebe6949f39269cb57f8eb478"
-redirect_uri = "http://gumdrop.tistory.com"
-grant_type="authorization_code" # authorization_code 고정
-access_token = "c9b1a2862fb270174114e073bf1b0793_270d34f4b4ccf2a8a5f0f2a09b6e1fff"
-blogName = "gumdrop"
 
-# twitter
-twitter_app_id = '27673764'
-twitter_api_key = 'cV9MKcDtdQVjSbfFKsa7lexVA'
-twitter_api_key_secret = 'OWHywLVG2vym0v4JrVqXcj4ACyFDu89t5s35DcKSEBJqlUKi4j'
-twitter_bearer_token = 'AAAAAAAAAAAAAAAAAAAAAKREpgEAAAAA4AXlPkqYZXCY80FmjGAMqX4s%2FQE%3Dd87D5OsQ8m1ftTEmCsYFj4YbQr1HTOYSCNf1kSJP7E2Zl9Kenl'
-twitter_access_token = '1315096053410983936-hjgbDG03CWEqygIeqjkHWn9ZOd0QJd'
-twitter_access_token_secret = 'iY2avoPoIjdQ7tW5rX8xw85f6P38p9r2lPTSklvEVfMwe'
-twitter_client_id = 'Qm1rdTZrQlFwX1c2dVhfMjhiZnI6MTpjaQ'
-twitter_client_secret = 'ejsHtaC6C6VVq9LkHO5-kOWGdJ8AchlQzwKp4oAM3XRWTgX1Kc'
 
 @app.route('/index')
 def index1():
